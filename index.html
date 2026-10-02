@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LCCL-S / S-S Resonant Circuit Simulator</title>
+  <style>
+    :root {
+      --bg-color: #0b0d14;
+      --card-bg: #141722;
+      --panel-bg: #1a1e2d;
+      --border-color: #2a2f45;
+      --text-main: #e1e7ed;
+      --text-muted: #8a94a6;
+      --color-cyan: #00ffff;
+      --color-yellow: #ffff00;
+      --color-danger: #ff5555;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+
+    .dashboard {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 28px;
+      width: 100%;
+      max-width: 860px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-align: center;
+      color: #ffffff;
+    }
+
+    /* Physics Telemetry HUD */
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      width: 100%;
+    }
+
+    .hud-card {
+      background-color: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .hud-card span {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 1.05rem;
+      font-weight: bold;
+      color: #ffffff;
+    }
+
+    /* Control Panel */
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    button {
+      background-color: var(--panel-bg);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #24293e;
+      border-color: #3f4668;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    #toggleBtn {
+      border-color: #0088cc;
+      color: #66d9ff;
+    }
+
+    #resetBtn {
+      border-color: #cc4444;
+      color: #ff9999;
+    }
+
+    /* Oscilloscope Screen */
+    #oscilloscope {
+      background-color: #05070c;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      display: block;
+      width: 100%;
+      max-width: 800px;
+      height: auto;
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.9);
+    }
+
+    /* Waveform Legend */
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 28px;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend .cyan {
+      color: var(--color-cyan);
+    }
+
+    .legend .yellow {
+      color: var(--color-yellow);
+    }
+
+    /* Error Indicator */
+    #error-log {
+      color: var(--color-danger);
+      font-family: monospace;
+      font-size: 0.85rem;
+      text-align: center;
+      width: 100%;
+      min-height: 1.2em;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard">
+    <h1>LCCL-S / S-S Resonant Circuit Simulator</h1>
+
+    <!-- Real-time Physics HUD -->
+    <div class="hud">
+      <div class="hud-card">
+        Topology
+        <span id="hud-topo">LCCL-S</span>
+      </div>
+      <div class="hud-card">
+        Primary Coil i<sub>p</sub>
+        <span id="hud-ip">0.00 A</span>
+      </div>
+      <div class="hud-card">
+        Secondary Coil i<sub>s</sub>
+        <span id="hud-is">0.00 A</span>
+      </div>
+      <div class="hud-card">
+        Sim Time
+        <span id="hud-time">0.00 µs</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button id="toggleBtn">Switch to S-S Mode</button>
+      <button id="resetBtn">Reset Circuit State</button>
+    </div>
+
+    <!-- Oscilloscope Viewport -->
+    <canvas id="oscilloscope" width="800" height="400"></canvas>
+
+    <!-- Legend -->
+    <div class="legend">
+      <span class="legend-item cyan">■ Primary Coil Current (i<sub>p</sub>)</span>
+      <span class="legend-item yellow">■ Secondary Coil Current (i<sub>s</sub>)</span>
+    </div>
+
+    <!-- Error Log output -->
+    <div id="error-log"></div>
+  </div>
+
+  <script type="module">
+    import init, { ResonantCircuitSim } from './pkg/wpt_simulator_rust.js';
+
+    async function main() {
+      try {
+        // Initialize WASM
+        await init();
+
+        const sim = new ResonantCircuitSim();
+        const canvas = document.getElementById('oscilloscope');
+        const ctx = canvas.getContext('2d');
+
+        let isSSMode = false;
+
+        document.getElementById('toggleBtn').addEventListener('click', () => {
+          isSSMode = !isSSMode;
+          sim.set_topology(isSSMode);
+          document.getElementById('hud-topo').innerText = isSSMode ? 'S-S Mode' : 'LCCL-S';
+          document.getElementById('toggleBtn').innerText =
+            `Switch to ${isSSMode ? 'LCCL-S' : 'S-S'} Mode`;
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+          sim.reset_state();
+        });
+
+        function render() {
+          // Step physics forward 100 microseconds (500 sub-steps of 200ns)
+          sim.update(0.0001, 500);
+
+          const ipHist = sim.get_history_ip();
+          const isHist = sim.get_history_is();
+
+          // Update HUD Telemetry
+          document.getElementById('hud-ip').innerText = `${sim.get_ip().toFixed(2)} A`;
+          document.getElementById('hud-is').innerText = `${sim.get_is().toFixed(2)} A`;
+          document.getElementById('hud-time').innerText = `${(sim.get_time() * 1e6).toFixed(1)} µs`;
+
+          // Clear Canvas
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          // Center Grid Zero Line
+          ctx.strokeStyle = '#333333';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(0, canvas.height / 2);
+          ctx.lineTo(canvas.width, canvas.height / 2);
+          ctx.stroke();
+
+          // Auto-Scale Gain Calculation
+          let maxAmp = 1.0;
+          for (let i = 0; i < ipHist.length; i++) {
+            maxAmp = Math.max(maxAmp, Math.abs(ipHist[i]), Math.abs(isHist[i]));
+          }
+          const scaleY = (canvas.height * 0.4) / maxAmp;
+
+          // Draw Primary Current i_p (Cyan)
+          if (ipHist.length > 1) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < ipHist.length; i++) {
+              let x = (i / (ipHist.length - 1)) * canvas.width;
+              let y = canvas.height / 2 - ipHist[i] * scaleY;
+              if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+          }
+
+          // Draw Secondary Current i_s (Yellow)
+          if (isHist.length > 1) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < isHist.length; i++) {
+              let x = (i / (isHist.length - 1)) * canvas.width;
+              let y = canvas.height / 2 - isHist[i] * scaleY;
+              if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+          }
+
+          requestAnimationFrame(render);
+        }
+
+        render();
+      } catch (err) {
+        console.error("WASM Load Error:", err);
+        document.getElementById('error-log').innerText =
+          `Failed to load WASM module: ${err.message}. Check browser console (F12).`;
+      }
+    }
+
+    main();
+  </script>
+</body>
+</html>
