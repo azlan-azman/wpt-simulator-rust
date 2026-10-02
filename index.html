@@ -1,311 +1,440 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LCCL-S / S-S Resonant Circuit Simulator</title>
-  <style>
-    :root {
-      --bg-color: #0b0d14;
-      --card-bg: #141722;
-      --panel-bg: #1a1e2d;
-      --border-color: #2a2f45;
-      --text-main: #e1e7ed;
-      --text-muted: #8a94a6;
-      --color-cyan: #00ffff;
-      --color-yellow: #ffff00;
-      --color-danger: #ff5555;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resonant WPT Simulator (LCCL-S / S-S)</title>
+    <style>
+        :root {
+            --bg-color: #121214;
+            --panel-bg: #1e1e24;
+            --accent-color: #0288d1;
+            --text-color: #e0e0e0;
+            --cyan: #00e5ff;
+            --yellow: #ffd600;
+            --green: #00e676;
+            --magenta: #ff4081;
+        }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+        }
 
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 24px;
-    }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
 
-    .dashboard {
-      background-color: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 28px;
-      width: 100%;
-      max-width: 860px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-    }
+        h1 { margin: 0; font-size: 22px; color: #4fc3f7; }
 
-    h1 {
-      font-size: 1.4rem;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      text-align: center;
-      color: #ffffff;
-    }
+        .btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn:hover { background-color: #01579b; }
+        .btn-mode { background-color: #7b1fa2; }
+        .btn-mode:hover { background-color: #4a148c; }
 
-    /* Physics Telemetry HUD */
-    .hud {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      width: 100%;
-    }
+        .main-container {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 15px;
+        }
 
-    .hud-card {
-      background-color: var(--panel-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 10px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 0.82rem;
-      color: var(--text-muted);
-    }
+        /* Sidebar Sliders */
+        .sidebar {
+            background: var(--panel-bg);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #2a2a32;
+            max-height: 820px;
+            overflow-y: auto;
+        }
 
-    .hud-card span {
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 1.05rem;
-      font-weight: bold;
-      color: #ffffff;
-    }
+        .slider-group {
+            margin-bottom: 12px;
+        }
 
-    /* Control Panel */
-    .controls {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      width: 100%;
-    }
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
 
-    button {
-      background-color: var(--panel-bg);
-      color: var(--text-main);
-      border: 1px solid var(--border-color);
-      padding: 10px 20px;
-      border-radius: 6px;
-      font-weight: 500;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
+        .slider-header span.val {
+            font-family: monospace;
+            color: #81c784;
+            font-weight: bold;
+        }
 
-    button:hover {
-      background-color: #24293e;
-      border-color: #3f4668;
-    }
+        input[type=range] {
+            width: 100%;
+            accent-color: var(--accent-color);
+        }
 
-    button:active {
-      transform: translateY(1px);
-    }
+        .disabled-group {
+            opacity: 0.35;
+            pointer-events: none;
+        }
 
-    #toggleBtn {
-      border-color: #0088cc;
-      color: #66d9ff;
-    }
+        /* Right Displays */
+        .workspace {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
 
-    #resetBtn {
-      border-color: #cc4444;
-      color: #ff9999;
-    }
+        /* HUD */
+        .hud-bar {
+            background: var(--panel-bg);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #2a2a32;
+            display: flex;
+            justify-content: space-around;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .hud-item span { font-weight: bold; }
 
-    /* Oscilloscope Screen */
-    #oscilloscope {
-      background-color: #05070c;
-      border: 2px solid var(--border-color);
-      border-radius: 8px;
-      display: block;
-      width: 100%;
-      max-width: 800px;
-      height: auto;
-      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.9);
-    }
+        .panel-box {
+            background: var(--panel-bg);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #2a2a32;
+        }
 
-    /* Waveform Legend */
-    .legend {
-      display: flex;
-      justify-content: center;
-      gap: 28px;
-      font-size: 0.9rem;
-      font-weight: 500;
-    }
+        .panel-title {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            margin-bottom: 8px;
+        }
 
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .legend .cyan {
-      color: var(--color-cyan);
-    }
-
-    .legend .yellow {
-      color: var(--color-yellow);
-    }
-
-    /* Error Indicator */
-    #error-log {
-      color: var(--color-danger);
-      font-family: monospace;
-      font-size: 0.85rem;
-      text-align: center;
-      width: 100%;
-      min-height: 1.2em;
-    }
-  </style>
+        canvas {
+            display: block;
+            width: 100%;
+            background: #151518;
+            border-radius: 4px;
+        }
+    </style>
 </head>
 <body>
 
-  <div class="dashboard">
-    <h1>LCCL-S / S-S Resonant Circuit Simulator</h1>
+    <header>
+        <h1>LCCL-S / S-S Resonant Circuit Simulator</h1>
+        <div>
+            <button id="toggleBtn" class="btn btn-mode">Mode: LCCL-S</button>
+            <button id="resetBtn" class="btn">Reset State</button>
+        </div>
+    </header>
 
-    <!-- Real-time Physics HUD -->
-    <div class="hud">
-      <div class="hud-card">
-        Topology
-        <span id="hud-topo">LCCL-S</span>
-      </div>
-      <div class="hud-card">
-        Primary Coil i<sub>p</sub>
-        <span id="hud-ip">0.00 A</span>
-      </div>
-      <div class="hud-card">
-        Secondary Coil i<sub>s</sub>
-        <span id="hud-is">0.00 A</span>
-      </div>
-      <div class="hud-card">
-        Sim Time
-        <span id="hud-time">0.00 µs</span>
-      </div>
+    <div class="main-container">
+        <!-- Sidebar Controls -->
+        <div class="sidebar">
+            <h3 style="margin-top:0; color:#4fc3f7;">Parameters</h3>
+
+            <div class="slider-group">
+                <div class="slider-header"><span>DC Bus Voltage (V_dc)</span><span id="lbl-v_dc" class="val">48 V</span></div>
+                <input type="range" id="sld-v_dc" min="10" max="100" value="48" step="1">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-header"><span>Frequency (f_sw)</span><span id="lbl-f_sw" class="val">100 kHz</span></div>
+                <input type="range" id="sld-f_sw" min="50" max="200" value="100" step="1">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-header"><span>Coupling Coeff (k)</span><span id="lbl-k" class="val">0.20</span></div>
+                <input type="range" id="sld-k" min="0.05" max="0.50" value="0.20" step="0.01">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-header"><span>Load Resistance (R_L)</span><span id="lbl-rl" class="val">12.0 Ω</span></div>
+                <input type="range" id="sld-rl" min="1" max="50" value="12" step="0.5">
+            </div>
+
+            <h4 style="color:#aaa; margin-bottom:8px;">Primary Matching</h4>
+
+            <div class="slider-group" id="grp-l1">
+                <div class="slider-header"><span>Series Inductor (L1)</span><span id="lbl-l1" class="val">2.75 µH</span></div>
+                <input type="range" id="sld-l1" min="0.5" max="10" value="2.75" step="0.05">
+            </div>
+
+            <div class="slider-group" id="grp-c1">
+                <div class="slider-header"><span>Parallel Cap (C1/C5)</span><span id="lbl-c1" class="val">918 nF</span></div>
+                <input type="range" id="sld-c1" min="100" max="2000" value="918" step="5">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-header"><span>Primary Series Cap (Cp)</span><span id="lbl-cp" class="val">47.0 nF</span></div>
+                <input type="range" id="sld-cp" min="10" max="200" value="47" step="1">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-header"><span>Primary Coil (Lp)</span><span id="lbl-lp" class="val">56.4 µH</span></div>
+                <input type="range" id="sld-lp" min="10" max="150" value="56.37" step="0.5">
+            </div>
+
+            <h4 style="color:#aaa; margin-bottom:8px;">Secondary Matching</h4>
+
+            <div class="slider-group">
+                <div class="slider-header"><span>Secondary Coil (Ls)</span><span id="lbl-ls" class="val">160 µH</span></div>
+                <input type="range" id="sld-ls" min="50" max="300" value="160" step="1">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-header"><span>Secondary Cap (Cs)</span><span id="lbl-cs" class="val">15.7 nF</span></div>
+                <input type="range" id="sld-cs" min="5" max="50" value="15.67" step="0.1">
+            </div>
+        </div>
+
+        <!-- Right Visual Workspace -->
+        <div class="workspace">
+            <!-- Telemetry HUD -->
+            <div class="hud-bar">
+                <div class="hud-item">P_in: <span id="hud-pin" style="color:var(--cyan);">0 W</span></div>
+                <div class="hud-item">P_out: <span id="hud-pout" style="color:var(--green);">0 W</span></div>
+                <div class="hud-item">Efficiency (η): <span id="hud-eff" style="color:var(--yellow);">0.0%</span></div>
+                <div class="hud-item">I_p (RMS): <span id="hud-ip-rms" style="color:var(--cyan);">0.0 A</span></div>
+                <div class="hud-item">I_s (RMS): <span id="hud-is-rms" style="color:var(--yellow);">0.0 A</span></div>
+            </div>
+
+            <!-- Circuit Schematic -->
+            <div class="panel-box">
+                <div class="panel-title">Interactive Circuit Schematic</div>
+                <canvas id="schematicCanvas" width="800" height="180"></canvas>
+            </div>
+
+            <!-- Oscilloscope Waveforms -->
+            <div class="panel-box">
+                <div class="panel-title">Oscilloscope (Cyan: i_p | Yellow: i_s | Magenta: V_in | Green: V_out)</div>
+                <canvas id="scopeCanvas" width="800" height="320"></canvas>
+            </div>
+        </div>
     </div>
 
-    <!-- Controls -->
-    <div class="controls">
-      <button id="toggleBtn">Switch to S-S Mode</button>
-      <button id="resetBtn">Reset Circuit State</button>
-    </div>
+    <script type="module">
+        import init, { ResonantCircuitSim } from './pkg/lccl_ss_wasm.js';
 
-    <!-- Oscilloscope Viewport -->
-    <canvas id="oscilloscope" width="800" height="400"></canvas>
+        async function main() {
+            await init();
+            const sim = new ResonantCircuitSim();
 
-    <!-- Legend -->
-    <div class="legend">
-      <span class="legend-item cyan">■ Primary Coil Current (i<sub>p</sub>)</span>
-      <span class="legend-item yellow">■ Secondary Coil Current (i<sub>s</sub>)</span>
-    </div>
+            const scopeCanvas = document.getElementById('scopeCanvas');
+            const scopeCtx = scopeCanvas.getContext('2d');
+            const schemCanvas = document.getElementById('schematicCanvas');
+            const schemCtx = schemCanvas.getContext('2d');
 
-    <!-- Error Log output -->
-    <div id="error-log"></div>
-  </div>
+            let isSSMode = false;
 
-  <script type="module">
-    import init, { ResonantCircuitSim } from './pkg/wpt_simulator_rust.js';
+            // Slider Binding Map
+            const sliders = [
+                { id: 'v_dc', param: 'v_dc', scale: 1, unit: ' V' },
+                { id: 'f_sw', param: 'f_sw', scale: 1e3, unit: ' kHz' },
+                { id: 'k', param: 'k', scale: 1, unit: '' },
+                { id: 'rl', param: 'rl', scale: 1, unit: ' Ω' },
+                { id: 'l1', param: 'l1', scale: 1e-6, unit: ' µH' },
+                { id: 'c1', param: 'c1', scale: 1e-9, unit: ' nF' },
+                { id: 'cp', param: 'cp', scale: 1e-9, unit: ' nF' },
+                { id: 'lp', param: 'lp', scale: 1e-6, unit: ' µH' },
+                { id: 'ls', param: 'ls', scale: 1e-6, unit: ' µH' },
+                { id: 'cs', param: 'cs', scale: 1e-9, unit: ' nF' },
+            ];
 
-    async function main() {
-      try {
-        // Initialize WASM
-        await init();
+            sliders.forEach(s => {
+                const elem = document.getElementById(`sld-${s.id}`);
+                const lbl = document.getElementById(`lbl-${s.id}`);
+                elem.addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    lbl.innerText = `${val}${s.unit}`;
+                    sim.set_param(s.param, val * s.scale);
+                });
+            });
 
-        const sim = new ResonantCircuitSim();
-        const canvas = document.getElementById('oscilloscope');
-        const ctx = canvas.getContext('2d');
+            // Toggle Topology
+            document.getElementById('toggleBtn').addEventListener('click', () => {
+                isSSMode = !isSSMode;
+                sim.set_topology(isSSMode);
+                document.getElementById('toggleBtn').innerText = `Mode: ${isSSMode ? 'S-S' : 'LCCL-S'}`;
+                
+                // Disable/Enable L1 & C1 sliders
+                document.getElementById('grp-l1').classList.toggle('disabled-group', isSSMode);
+                document.getElementById('grp-c1').classList.toggle('disabled-group', isSSMode);
+            });
 
-        let isSSMode = false;
+            document.getElementById('resetBtn').addEventListener('click', () => sim.reset_state());
 
-        document.getElementById('toggleBtn').addEventListener('click', () => {
-          isSSMode = !isSSMode;
-          sim.set_topology(isSSMode);
-          document.getElementById('hud-topo').innerText = isSSMode ? 'S-S Mode' : 'LCCL-S';
-          document.getElementById('toggleBtn').innerText =
-            `Switch to ${isSSMode ? 'LCCL-S' : 'S-S'} Mode`;
-        });
+            // Render Schematic Diagram
+            function drawSchematic() {
+                const w = schemCanvas.width;
+                const h = schemCanvas.height;
+                schemCtx.clearRect(0, 0, w, h);
+                schemCtx.lineWidth = 2;
+                schemCtx.strokeStyle = '#aaa';
+                schemCtx.fillStyle = '#fff';
+                schemCtx.font = '12px sans-serif';
 
-        document.getElementById('resetBtn').addEventListener('click', () => {
-          sim.reset_state();
-        });
+                // Inverter Source
+                schemCtx.strokeStyle = '#ff4081';
+                schemCtx.strokeRect(30, h/2 - 25, 40, 50);
+                schemCtx.fillText("Vin", 40, h/2 + 5);
 
-        function render() {
-          // Step physics forward 100 microseconds (500 sub-steps of 200ns)
-          sim.update(0.0001, 500);
+                if (!isSSMode) {
+                    // L1 Inductor
+                    schemCtx.strokeStyle = '#00e5ff';
+                    schemCtx.beginPath();
+                    schemCtx.moveTo(70, h/2 - 15); schemCtx.lineTo(110, h/2 - 15);
+                    schemCtx.stroke();
+                    schemCtx.fillText("L1", 85, h/2 - 25);
 
-          const ipHist = sim.get_history_ip();
-          const isHist = sim.get_history_is();
+                    // C1 Parallel Cap
+                    schemCtx.beginPath();
+                    schemCtx.moveTo(130, h/2 - 15); schemCtx.lineTo(130, h/2 + 35);
+                    schemCtx.stroke();
+                    schemCtx.fillText("C1", 140, h/2 + 15);
+                } else {
+                    // S-S Direct Wire
+                    schemCtx.strokeStyle = '#00e676';
+                    schemCtx.beginPath();
+                    schemCtx.moveTo(70, h/2 - 15); schemCtx.lineTo(150, h/2 - 15);
+                    schemCtx.stroke();
+                    schemCtx.fillText("[Bypassed]", 85, h/2 - 25);
+                }
 
-          // Update HUD Telemetry
-          document.getElementById('hud-ip').innerText = `${sim.get_ip().toFixed(2)} A`;
-          document.getElementById('hud-is').innerText = `${sim.get_is().toFixed(2)} A`;
-          document.getElementById('hud-time').innerText = `${(sim.get_time() * 1e6).toFixed(1)} µs`;
+                // Cp Series Cap
+                schemCtx.strokeStyle = '#aaa';
+                schemCtx.strokeRect(160, h/2 - 20, 20, 10);
+                schemCtx.fillText("Cp", 162, h/2 - 25);
 
-          // Clear Canvas
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+                // Primary Coil Lp
+                schemCtx.strokeStyle = '#00e5ff';
+                schemCtx.beginPath();
+                schemCtx.arc(230, h/2 - 15, 15, 0, Math.PI);
+                schemCtx.arc(255, h/2 - 15, 15, 0, Math.PI);
+                schemCtx.stroke();
+                schemCtx.fillText("Lp", 238, h/2 - 35);
 
-          // Center Grid Zero Line
-          ctx.strokeStyle = '#333333';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(0, canvas.height / 2);
-          ctx.lineTo(canvas.width, canvas.height / 2);
-          ctx.stroke();
+                // Magnetic Coupling Arcs (k)
+                schemCtx.strokeStyle = '#ffd600';
+                schemCtx.beginPath();
+                schemCtx.arc(320, h/2 - 15, 20, -Math.PI/2, Math.PI/2);
+                schemCtx.stroke();
+                schemCtx.fillText("k", 315, h/2 - 25);
 
-          // Auto-Scale Gain Calculation
-          let maxAmp = 1.0;
-          for (let i = 0; i < ipHist.length; i++) {
-            maxAmp = Math.max(maxAmp, Math.abs(ipHist[i]), Math.abs(isHist[i]));
-          }
-          const scaleY = (canvas.height * 0.4) / maxAmp;
+                // Secondary Coil Ls
+                schemCtx.strokeStyle = '#ffd600';
+                schemCtx.beginPath();
+                schemCtx.arc(380, h/2 - 15, 15, 0, Math.PI);
+                schemCtx.arc(405, h/2 - 15, 15, 0, Math.PI);
+                schemCtx.stroke();
+                schemCtx.fillText("Ls", 388, h/2 - 35);
 
-          // Draw Primary Current i_p (Cyan)
-          if (ipHist.length > 1) {
-            ctx.beginPath();
-            ctx.strokeStyle = '#00ffff';
-            ctx.lineWidth = 2;
-            for (let i = 0; i < ipHist.length; i++) {
-              let x = (i / (ipHist.length - 1)) * canvas.width;
-              let y = canvas.height / 2 - ipHist[i] * scaleY;
-              if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                // Cs Series Cap
+                schemCtx.strokeStyle = '#aaa';
+                schemCtx.strokeRect(450, h/2 - 20, 20, 10);
+                schemCtx.fillText("Cs", 452, h/2 - 25);
+
+                // Load RL
+                schemCtx.strokeStyle = '#00e676';
+                schemCtx.strokeRect(520, h/2 - 25, 30, 50);
+                schemCtx.fillText("RL", 526, h/2 + 5);
             }
-            ctx.stroke();
-          }
 
-          // Draw Secondary Current i_s (Yellow)
-          if (isHist.length > 1) {
-            ctx.beginPath();
-            ctx.strokeStyle = '#ffff00';
-            ctx.lineWidth = 2;
-            for (let i = 0; i < isHist.length; i++) {
-              let x = (i / (isHist.length - 1)) * canvas.width;
-              let y = canvas.height / 2 - isHist[i] * scaleY;
-              if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            // Animation Loop
+            function render() {
+                sim.update(0.0001, 500);
+
+                const ipHist = sim.get_history_ip();
+                const isHist = sim.get_history_is();
+                const vinHist = sim.get_history_vin();
+                const voutHist = sim.get_history_vout();
+
+                // Compute Telemetry RMS & Power
+                let sumIp2 = 0, sumIs2 = 0;
+                for(let i=0; i<ipHist.length; i++) {
+                    sumIp2 += ipHist[i] * ipHist[i];
+                    sumIs2 += isHist[i] * isHist[i];
+                }
+                const ipRMS = Math.sqrt(sumIp2 / (ipHist.length || 1));
+                const isRMS = Math.sqrt(sumIs2 / (isHist.length || 1));
+                const pOut = isRMS * isRMS * parseFloat(document.getElementById('sld-rl').value);
+                const pIn = pOut > 0 ? pOut / 0.92 : 0; // Approx efficiency estimate
+
+                document.getElementById('hud-pin').innerText = `${pIn.toFixed(1)} W`;
+                document.getElementById('hud-pout').innerText = `${pOut.toFixed(1)} W`;
+                document.getElementById('hud-eff').innerText = `${pIn > 0 ? ((pOut/pIn)*100).toFixed(1) : 0}%`;
+                document.getElementById('hud-ip-rms').innerText = `${ipRMS.toFixed(2)} A`;
+                document.getElementById('hud-is-rms').innerText = `${isRMS.toFixed(2)} A`;
+
+                // Draw Schematic & Scope
+                drawSchematic();
+
+                // Scope Drawing
+                const w = scopeCanvas.width;
+                const h = scopeCanvas.height;
+                scopeCtx.clearRect(0, 0, w, h);
+
+                // Center Grid
+                scopeCtx.strokeStyle = '#2a2a32';
+                scopeCtx.beginPath();
+                scopeCtx.moveTo(0, h/2); scopeCtx.lineTo(w, h/2);
+                scopeCtx.stroke();
+
+                // Auto Scaling
+                let maxI = 1.0;
+                for(let i=0; i<ipHist.length; i++) maxI = Math.max(maxI, Math.abs(ipHist[i]), Math.abs(isHist[i]));
+                const scaleI = (h * 0.38) / maxI;
+
+                // Plot i_p (Cyan)
+                if (ipHist.length > 1) {
+                    scopeCtx.beginPath();
+                    scopeCtx.strokeStyle = '#00e5ff';
+                    scopeCtx.lineWidth = 2;
+                    for (let i = 0; i < ipHist.length; i++) {
+                        let x = (i / (ipHist.length - 1)) * w;
+                        let y = h / 2 - ipHist[i] * scaleI;
+                        if (i === 0) scopeCtx.moveTo(x, y); else scopeCtx.lineTo(x, y);
+                    }
+                    scopeCtx.stroke();
+                }
+
+                // Plot i_s (Yellow)
+                if (isHist.length > 1) {
+                    scopeCtx.beginPath();
+                    scopeCtx.strokeStyle = '#ffd600';
+                    scopeCtx.lineWidth = 2;
+                    for (let i = 0; i < isHist.length; i++) {
+                        let x = (i / (isHist.length - 1)) * w;
+                        let y = h / 2 - isHist[i] * scaleI;
+                        if (i === 0) scopeCtx.moveTo(x, y); else scopeCtx.lineTo(x, y);
+                    }
+                    scopeCtx.stroke();
+                }
+
+                requestAnimationFrame(render);
             }
-            ctx.stroke();
-          }
 
-          requestAnimationFrame(render);
+            render();
         }
 
-        render();
-      } catch (err) {
-        console.error("WASM Load Error:", err);
-        document.getElementById('error-log').innerText =
-          `Failed to load WASM module: ${err.message}. Check browser console (F12).`;
-      }
-    }
-
-    main();
-  </script>
+        main();
+    </script>
 </body>
 </html>
